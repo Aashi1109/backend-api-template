@@ -1,0 +1,6 @@
+# Ignore templates directory from Cursor linting
+# These are template files that will have errors until scaffolded
+templates/base/**
+templates/modules/**
+
+

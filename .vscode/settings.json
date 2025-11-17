@@ -1,0 +1,22 @@
+{
+  "files.exclude": {
+    "templates/**/*.ts": false
+  },
+  "search.exclude": {
+    "templates/": false
+  },
+  "typescript.validate.enable": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "eslint.workingDirectories": [
+    { "mode": "auto" }
+  ],
+  "eslint.options": {
+    "ignorePatterns": ["templates/**"]
+  },
+  // Disable error diagnostics for template files
+  "files.associations": {
+    "templates/**/*.ts": "typescript"
+  }
+}
+
+

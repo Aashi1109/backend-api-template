@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false
+  },
+  // Only include the scaffold CLI, exclude template files
+  "include": ["bin/**/*"],
+  "exclude": [
+    "node_modules",
+    "templates/**/*",
+    "dist"
+  ]
+}
+

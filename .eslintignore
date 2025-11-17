@@ -1,0 +1,14 @@
+# Ignore template files (they're incomplete until scaffolded)
+templates/
+
+# Standard ignores
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+
+

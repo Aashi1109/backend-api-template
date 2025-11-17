@@ -1,0 +1,28 @@
+{
+  "name": "backend-template",
+  "version": "1.0.0",
+  "description": "Backend project template with optional features scaffold",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "backend-scaffold": "./bin/scaffold.js"
+  },
+  "scripts": {
+    "scaffold": "node bin/scaffold.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "backend",
+    "template",
+    "scaffold",
+    "nodejs",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "inquirer": "^9.2.12",
+    "chalk": "^5.3.0",
+    "glob": "^10.3.10"
+  }
+}

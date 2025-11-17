@@ -1,0 +1,59 @@
+{
+  "cloudinary": {
+    "name": "Cloudinary Integration",
+    "description": "File upload and management with Cloudinary CDN",
+    "files": ["features/ccloudinary/**"],
+    "dependencies": {
+      "cloudinary": "^2.0.0"
+    },
+    "injections": [
+      {
+        "file": "src/config/index.ts",
+        "marker": "// INJECT:CLOUDINARY_CONFIG",
+        "code": "  cloudinary: {\n    cloudName: process.env.CLOUDINARY_CLOUD_NAME!,\n    apiKey: process.env.CLOUDINARY_API_KEY!,\n    apiSecret: process.env.CLOUDINARY_API_SECRET!,\n    uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET!,\n    secure: true,\n  },"
+      },
+      {
+        "file": ".env.example",
+        "marker": "# INJECT:CLOUDINARY_ENV",
+        "code": "# Cloudinary Configuration\nCLOUDINARY_CLOUD_NAME=your_cloud_name\nCLOUDINARY_API_KEY=your_api_key\nCLOUDINARY_API_SECRET=your_api_secret\nCLOUDINARY_UPLOAD_PRESET=your_upload_preset"
+      }
+    ]
+  },
+  "request-context": {
+    "name": "Request Context Middleware",
+    "description": "Per-request async context tracking using AsyncLocalStorage",
+    "files": ["middlewares/contexts/**", "shared/contexts/**"],
+    "dependencies": {},
+    "injections": [
+      {
+        "file": "src/shared/middlewares/index.ts",
+        "marker": "// INJECT:REQUEST_CONTEXT_EXPORT",
+        "code": "export { default as requestContextMiddleware } from \"../../middlewares/contexts/request\";"
+      },
+      {
+        "file": "src/app.ts",
+        "marker": "// INJECT:REQUEST_CONTEXT_IMPORT",
+        "code": "requestContextMiddleware,"
+      },
+      {
+        "file": "src/app.ts",
+        "marker": "// INJECT:REQUEST_CONTEXT_MIDDLEWARE",
+        "code": "  app.use(requestContextMiddleware);"
+      }
+    ]
+  },
+  "workers": {
+    "name": "Background Workers",
+    "description": "Background worker infrastructure for async job processing",
+    "files": ["workers/**"],
+    "dependencies": {},
+    "injections": []
+  },
+  "queues": {
+    "name": "Queue System",
+    "description": "Job queue system for background task management",
+    "files": ["queues/**"],
+    "dependencies": {},
+    "injections": []
+  }
+}
