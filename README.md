@@ -28,7 +28,32 @@ Infrastructure for running background workers to process async jobs.
 
 Job queue system for managing background tasks.
 
-## Installation
+## Installation & Usage
+
+### Quick Start (Recommended - via npx)
+
+If this package is published to npm, you can use it directly with npx:
+
+```bash
+npx backend-template
+```
+
+Or with a specific version:
+
+```bash
+npx backend-template@latest
+```
+
+This will:
+
+1. Prompt you for a project name
+2. Let you select features to include
+3. Scaffold your project in the current directory or a new subdirectory
+4. Optionally install dependencies automatically
+
+### Local Development Setup
+
+If you want to work with the template locally:
 
 1. **Clone this repository**:
 
@@ -37,26 +62,13 @@ git clone <repository-url>
 cd backend-template
 ```
 
-1. **Install scaffold dependencies**:
+2. **Install scaffold dependencies**:
 
 ```bash
 npm install
 ```
 
-> **Note**: The `templates/` directory contains incomplete TypeScript files that will show linter errors. This is expected - they're template files that become complete only after scaffolding. The `.eslintignore`, `.cursorignore`, and `tsconfig.json` files are configured to ignore the templates directory. You may need to reload your IDE window for these settings to take effect.
-
-## Usage
-
-### Method 1: Using npm script (from template directory)
-
-Navigate to where you want to create your new project and run:
-
-```bash
-cd /path/to/your/new/project
-node /path/to/backend-template/bin/scaffold.js
-```
-
-### Method 2: Using npm link (recommended)
+3. **Use via npm link** (for local development):
 
 From the template directory:
 
@@ -70,11 +82,16 @@ Then from any directory where you want to create a project:
 backend-scaffold
 ```
 
-### Method 3: Using npx (if published to npm)
+### Alternative: Direct Node Execution
+
+Navigate to where you want to create your new project and run:
 
 ```bash
-npx backend-template
+cd /path/to/your/new/project
+node /path/to/backend-template/bin/scaffold.js
 ```
+
+> **Note**: The `templates/` directory contains incomplete TypeScript files that will show linter errors. This is expected - they're template files that become complete only after scaffolding. The `.eslintignore`, `.cursorignore`, and `tsconfig.json` files are configured to ignore the templates directory. You may need to reload your IDE window for these settings to take effect.
 
 ## Scaffold Process
 

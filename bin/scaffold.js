@@ -394,7 +394,7 @@ async function scaffold() {
   ]);
 
   // If user wants to install dependencies, ask which installer to use
-  let installer = "npm";
+  let installer = "pnpm";
   if (answers.installDeps) {
     const installerAnswer = await inquirer.prompt([
       {
@@ -406,7 +406,7 @@ async function scaffold() {
           { name: "yarn", value: "yarn" },
           { name: "pnpm", value: "pnpm" },
         ],
-        default: "npm",
+        default: "pnpm",
       },
     ]);
     installer = installerAnswer.installer;

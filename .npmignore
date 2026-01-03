@@ -1,3 +1,11 @@
+# Development files
+.git/
+.gitignore
+.eslintignore
+.cursorignore
+.vscode/
+.idea/
+
 # Dependencies
 node_modules/
 
@@ -16,23 +24,21 @@ yarn-error.log*
 .env.local
 .env.*.local
 
-# IDE
-# .vscode/ is tracked for workspace settings
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
 # Testing
 coverage/
 .nyc_output/
+*.test.js
+*.spec.js
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Temporary files
 *.tmp
 .cache/
-*.tgz
+
+# Documentation (keep README.md, exclude others)
+CHANGELOG.md
+CONTRIBUTING.md
 
