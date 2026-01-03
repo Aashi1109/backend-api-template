@@ -7,7 +7,6 @@
     "skipLibCheck": true,
     "strict": false
   },
-  // Only include the scaffold CLI, exclude template files
   "include": ["bin/**/*"],
   "exclude": [
     "node_modules",

@@ -112,3 +112,21 @@ export function startCase(value: string): string {
       (txt: string) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase()
     );
 }
+
+
+
+/**
+ * Generates a random alphanumeric ID string.
+ *
+ * @returns {string} A randomly generated alphanumeric string.
+ *
+ * @example
+ * const id = getAlphaNumericId();
+ * // id might be something like "83b2c4rfytp1p8xq8dfc6z09wvz8yc1"
+ */
+export function getAlphaNumericId() {
+  return (
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+  );
+}

@@ -8,7 +8,7 @@
     },
     "injections": [
       {
-        "file": "src/config/index.ts",
+        "file": "src/shared/config/index.ts",
         "marker": "// INJECT:CLOUDINARY_CONFIG",
         "code": "  cloudinary: {\n    cloudName: process.env.CLOUDINARY_CLOUD_NAME!,\n    apiKey: process.env.CLOUDINARY_API_KEY!,\n    apiSecret: process.env.CLOUDINARY_API_SECRET!,\n    uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET!,\n    secure: true,\n  },"
       },
@@ -22,38 +22,39 @@
   "request-context": {
     "name": "Request Context Middleware",
     "description": "Per-request async context tracking using AsyncLocalStorage",
-    "files": ["middlewares/contexts/**", "shared/contexts/**"],
+    "files": ["app/server/contexts/**", "app/server/middlewares/**"],
     "dependencies": {},
     "injections": [
       {
-        "file": "src/shared/middlewares/index.ts",
+        "file": "src/app/server/middlewares/index.ts",
         "marker": "// INJECT:REQUEST_CONTEXT_EXPORT",
-        "code": "export { default as requestContextMiddleware } from \"../../middlewares/contexts/request\";"
+        "code": "export { default as requestContextMiddleware } from \"./requestContext\";"
       },
       {
-        "file": "src/app.ts",
+        "file": "src/app/server/index.ts",
         "marker": "// INJECT:REQUEST_CONTEXT_IMPORT",
         "code": "requestContextMiddleware,"
       },
       {
-        "file": "src/app.ts",
+        "file": "src/app/server/index.ts",
         "marker": "// INJECT:REQUEST_CONTEXT_MIDDLEWARE",
         "code": "  app.use(requestContextMiddleware);"
       }
     ]
   },
   "workers": {
-    "name": "Background Workers",
-    "description": "Background worker infrastructure for async job processing",
-    "files": ["workers/**"],
-    "dependencies": {},
-    "injections": []
-  },
-  "queues": {
-    "name": "Queue System",
-    "description": "Job queue system for background task management",
-    "files": ["queues/**"],
-    "dependencies": {},
-    "injections": []
+    "name": "Background Workers and Queue System",
+    "description": "Background worker infrastructure for async job processing and queue system for background task management",
+    "files": ["workers/**", "queues/**"],
+    "dependencies": {
+      "bullmq": "^5.56.1"
+    },
+    "injections": [
+      {
+        "file": "package.json",
+        "marker": "// INJECT:WORKERS_SCRIPTS",
+        "code": "\"start:worker\": \"APP_TYPE=server WORKER_TYPE=index nvm use && node dist/src/workers/index.js\", \"dev:worker\": \"nvm use && tsx -r tsconfig-paths/register src/workers/index.ts\""
+      }
+    ]
   }
 }

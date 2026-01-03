@@ -3,7 +3,7 @@ import {
   UploadApiResponse,
   UploadApiOptions,
 } from "cloudinary";
-import config from "@/config";
+import { config } from "@/shared";
 
 cloudinary.config({
   cloud_name: config.cloudinary.cloudName,
@@ -13,7 +13,7 @@ cloudinary.config({
 });
 
 class CloudinaryService {
-  private readonly baseFolderPath = `Bhandara/`;
+  private readonly baseFolderPath = `<replace this>`;
   private readonly uploadPreset = config.cloudinary.uploadPreset;
 
   async uploadFile({
@@ -71,7 +71,7 @@ class CloudinaryService {
       timestamp,
       folder: `${this.baseFolderPath}${bucket}`,
       public_id: path,
-      upload_preset: "bhandara",
+      upload_preset: "<replace this>",
       context: `rid=${rid}`,
     };
     const signature = cloudinary.utils.api_sign_request(

@@ -1,6 +1,6 @@
 import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
-import config from "@/config";
+import { config } from "@/shared";
 import errors = format.errors;
 
 const env = process.env.NODE_ENV || "development";

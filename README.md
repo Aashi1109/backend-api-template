@@ -13,26 +13,32 @@ A powerful, feature-based backend project template with an interactive CLI scaff
 ## Available Features
 
 ### Cloudinary Integration
+
 File upload and management with Cloudinary CDN. Includes upload, delete, and signed URL generation.
 
 ### Request Context Middleware
+
 Per-request async context tracking using Node.js AsyncLocalStorage. Track request IDs, timings, and metrics throughout the request lifecycle.
 
 ### Background Workers
+
 Infrastructure for running background workers to process async jobs.
 
 ### Queue System
+
 Job queue system for managing background tasks.
 
 ## Installation
 
 1. **Clone this repository**:
+
 ```bash
 git clone <repository-url>
 cd backend-template
 ```
 
-2. **Install scaffold dependencies**:
+1. **Install scaffold dependencies**:
+
 ```bash
 npm install
 ```
@@ -87,7 +93,7 @@ npx backend-template
 
 ## Project Structure
 
-```
+```markdown
 backend-template/
 ├── bin/
 │   └── scaffold.js          # CLI scaffold tool
@@ -142,13 +148,13 @@ To add a new optional feature to the template:
 }
 ```
 
-3. **Add injection markers** to base template files where feature code should be inserted:
+1. **Add injection markers** to base template files where feature code should be inserted:
 
 ```typescript
 // INJECT:MY_FEATURE_MARKER
 ```
 
-4. The scaffold tool will automatically:
+1. The scaffold tool will automatically:
    - Show your feature in the selection menu
    - Copy files when selected
    - Inject code at markers
@@ -168,6 +174,7 @@ The scaffold uses a marker-based injection system. Features define markers like 
 ### Example
 
 **Base template** (`src/config/index.ts`):
+
 ```typescript
 const config = {
   // INJECT:CLOUDINARY_CONFIG
@@ -175,6 +182,7 @@ const config = {
 ```
 
 **After selecting Cloudinary**:
+
 ```typescript
 const config = {
   cloudinary: {
@@ -218,6 +226,7 @@ To modify the scaffold tool:
 ## Contributing
 
 When adding new features to the template:
+
 - Keep features modular and independent
 - Use descriptive marker names: `// INJECT:FEATURE_NAME_LOCATION`
 - Document any required environment variables
@@ -230,4 +239,3 @@ ISC
 ---
 
 **Happy coding!** 🚀
-

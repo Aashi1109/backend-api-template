@@ -1,4 +1,4 @@
-import logger from "@/shared/logger";
+import { logger } from "@/shared";
 
 const workerType = process.env.WORKER_TYPE;
 
@@ -20,13 +20,11 @@ async function startWorker() {
 // Graceful shutdown
 process.on("SIGTERM", async () => {
   logger.info(`Shutting down ${workerType} worker...`);
-  await shutdownTracing();
   process.exit(0);
 });
 
 process.on("SIGINT", async () => {
   logger.info(`Shutting down ${workerType} worker...`);
-  await shutdownTracing();
   process.exit(0);
 });
 

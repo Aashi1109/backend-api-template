@@ -1,7 +1,5 @@
 import { Sequelize } from "sequelize";
-import config from "@/config";
-import logger from "@/shared/logger";
-import { DB_CONNECTION_NAMES } from "@/shared/constants";
+import { DB_CONNECTION_NAMES, config, logger } from "@/shared";
 
 const postgresConnection: Partial<Record<DB_CONNECTION_NAMES, Sequelize>> = {};
 export const getConnections = () => postgresConnection;

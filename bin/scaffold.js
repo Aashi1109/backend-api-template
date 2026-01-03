@@ -68,6 +68,48 @@ async function injectCode(filePath, marker, code) {
   try {
     let content = await fs.readFile(filePath, "utf-8");
 
+    // Special handling for package.json - parse JSON and merge scripts
+    if (
+      filePath.endsWith("package.json") &&
+      marker.includes("WORKERS_SCRIPTS")
+    ) {
+      // Remove the marker from content before parsing (JSON doesn't support comments)
+      // Remove marker line if it exists
+      const markerRegex = new RegExp(
+        `^\\s*${marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
+        "gm"
+      );
+      content = content.replace(markerRegex, "");
+
+      const packageJson = JSON.parse(content);
+
+      // Parse the code as a JSON object to extract scripts
+      // The code should be a comma-separated list of key-value pairs
+      try {
+        // Wrap the code in braces to make it valid JSON
+        const scriptsToAdd = JSON.parse(`{${code}}`);
+        if (scriptsToAdd && typeof scriptsToAdd === "object") {
+          // Merge scripts into package.json
+          packageJson.scripts = {
+            ...packageJson.scripts,
+            ...scriptsToAdd,
+          };
+          await fs.writeFile(
+            filePath,
+            JSON.stringify(packageJson, null, 2) + "\n",
+            "utf-8"
+          );
+          return true;
+        }
+      } catch (parseError) {
+        // If parsing fails, throw error with helpful message
+        throw new Error(
+          `Failed to parse injection code for package.json: ${parseError.message}. Code: ${code}`
+        );
+      }
+    }
+
+    // Standard string replacement for other files
     if (content.includes(marker)) {
       // Replace marker with code + marker (keep marker for potential future injections)
       content = content.replace(marker, `${code}\n  ${marker}`);
@@ -88,7 +130,7 @@ async function injectCode(filePath, marker, code) {
 }
 
 // Utility to merge package.json
-async function mergePackageJson(targetDir, dependencies) {
+async function mergePackageJson(targetDir, dependencies, devDependencies = {}) {
   const packageJsonPath = path.join(targetDir, "package.json");
 
   try {
@@ -97,9 +139,17 @@ async function mergePackageJson(targetDir, dependencies) {
 
     // Merge dependencies
     packageJson.dependencies = {
-      ...packageJson.dependencies,
+      ...(packageJson.dependencies || {}),
       ...dependencies,
     };
+
+    // Merge devDependencies
+    if (devDependencies && Object.keys(devDependencies).length > 0) {
+      packageJson.devDependencies = {
+        ...(packageJson.devDependencies || {}),
+        ...devDependencies,
+      };
+    }
 
     await fs.writeFile(
       packageJsonPath,
@@ -107,12 +157,60 @@ async function mergePackageJson(targetDir, dependencies) {
       "utf-8"
     );
   } catch (error) {
-    console.warn(chalk.yellow("⚠ Warning: Could not update package.json"));
+    console.error(
+      chalk.red(`❌ Error updating package.json: ${error.message}`)
+    );
+    throw error;
+  }
+}
+
+// Utility to process template variables in files
+async function processTemplateVariables(filePath, variables) {
+  try {
+    const stat = await fs.stat(filePath);
+    if (!stat.isFile()) {
+      return;
+    }
+
+    let content = await fs.readFile(filePath, "utf-8");
+    let modified = false;
+
+    for (const [key, value] of Object.entries(variables)) {
+      const regex = new RegExp(`{{${key}}}`, "g");
+      if (regex.test(content)) {
+        content = content.replace(regex, value);
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      await fs.writeFile(filePath, content, "utf-8");
+    }
+  } catch (error) {
+    // File might not exist or not be readable, ignore
+  }
+}
+
+// Utility to process template variables in all files
+async function processAllTemplateVariables(targetDir, variables) {
+  const templateFiles = await glob(path.join(targetDir, "**/*"), {
+    ignore: ["**/node_modules/**", "**/dist/**", "**/build/**"],
+  });
+
+  for (const file of templateFiles) {
+    try {
+      const stat = await fs.stat(file);
+      if (stat.isFile()) {
+        await processTemplateVariables(file, variables);
+      }
+    } catch (error) {
+      // Skip files that can't be read
+    }
   }
 }
 
 // Clean up injection markers
-async function cleanupMarkers(targetDir) {
+async function cleanupMarkers(targetDir, injectedMarkers) {
   const filesToClean = await glob(
     path.join(targetDir, "**/*.{ts,js,json,env*}"),
     {
@@ -121,18 +219,63 @@ async function cleanupMarkers(targetDir) {
   );
 
   for (const file of filesToClean) {
-    let content = await fs.readFile(file, "utf-8");
-    let modified = false;
-
-    // Remove all INJECT markers
-    const markerRegex = /^\s*(?:\/\/|#)\s*INJECT:[A-Z_]+\s*$/gm;
-    if (markerRegex.test(content)) {
-      content = content.replace(markerRegex, "");
-      modified = true;
+    // Skip .env.example to preserve markers for future injections
+    if (file.endsWith(".env.example")) {
+      continue;
     }
 
-    if (modified) {
-      await fs.writeFile(file, content, "utf-8");
+    try {
+      let content = await fs.readFile(file, "utf-8");
+      let modified = false;
+
+      // Special handling for package.json - need to parse and rewrite to remove markers
+      if (file.endsWith("package.json")) {
+        // Remove markers from content before parsing
+        for (const marker of injectedMarkers) {
+          const escapedMarker = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const regex = new RegExp(`^\\s*${escapedMarker}\\s*$`, "gm");
+          if (regex.test(content)) {
+            content = content.replace(regex, "");
+            modified = true;
+          }
+        }
+
+        // If we modified content, parse JSON to validate and rewrite cleanly
+        if (modified) {
+          try {
+            const packageJson = JSON.parse(content);
+            await fs.writeFile(
+              file,
+              JSON.stringify(packageJson, null, 2) + "\n",
+              "utf-8"
+            );
+          } catch (parseError) {
+            // If parsing fails, just write the modified content as-is
+            await fs.writeFile(file, content, "utf-8");
+          }
+        }
+      } else {
+        // Standard handling for other files
+        for (const marker of injectedMarkers) {
+          // Escape special regex characters in the marker
+          const escapedMarker = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          // Match the marker exactly, with optional leading/trailing whitespace
+          // The marker includes the comment prefix (// or #)
+          const regex = new RegExp(`^\\s*${escapedMarker}\\s*$`, "gm");
+
+          if (regex.test(content)) {
+            content = content.replace(regex, "");
+            modified = true;
+          }
+        }
+
+        if (modified) {
+          await fs.writeFile(file, content, "utf-8");
+        }
+      }
+    } catch (error) {
+      // Skip files that can't be read
+      continue;
     }
   }
 }
@@ -142,10 +285,10 @@ async function scaffold() {
   console.log(chalk.blue.bold("\n🚀 Backend Template Scaffold\n"));
 
   // Get current directory (where user invoked the command)
-  const targetDir = process.cwd();
+  const currentDir = process.cwd();
 
   // Validate we're not scaffolding inside the template itself
-  if (targetDir.startsWith(TEMPLATE_ROOT)) {
+  if (currentDir.startsWith(TEMPLATE_ROOT)) {
     console.error(
       chalk.red("❌ Error: Cannot scaffold inside the template directory")
     );
@@ -158,6 +301,71 @@ async function scaffold() {
     "utf-8"
   );
   const featuresConfig = JSON.parse(featuresConfigContent);
+
+  // Prompt for project name
+  const projectAnswers = await inquirer.prompt([
+    {
+      type: "input",
+      name: "projectName",
+      message:
+        "Enter your project name (or '.' to scaffold in current directory):",
+      default: path.basename(currentDir),
+      validate: (input) => {
+        if (!input || input.trim().length === 0) {
+          return "Project name cannot be empty";
+        }
+        // Allow "." for current directory
+        if (input === ".") {
+          return true;
+        }
+        // Validate npm package name format
+        if (
+          !/^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(input)
+        ) {
+          return "Invalid package name format (must be lowercase, alphanumeric, hyphens, underscores, dots)";
+        }
+        return true;
+      },
+    },
+  ]);
+
+  // Determine target directory and project name
+  let targetDir;
+  let projectName;
+
+  if (projectAnswers.projectName === ".") {
+    // Use current directory
+    targetDir = currentDir;
+    projectName = path.basename(currentDir);
+  } else {
+    // Create new directory with project name
+    targetDir = path.resolve(currentDir, projectAnswers.projectName);
+    projectName = projectAnswers.projectName;
+  }
+
+  // Check if directory already exists and is not empty
+  try {
+    const stats = await fs.stat(targetDir);
+    if (stats.isDirectory()) {
+      const entries = await fs.readdir(targetDir);
+      // Fail if directory contains any files or subdirectories
+      if (entries.length > 0) {
+        console.error(
+          chalk.red(
+            `❌ Error: Directory "${targetDir}" is not empty. Please use an empty directory or choose a different name.`
+          )
+        );
+        process.exit(1);
+      }
+    }
+  } catch (error) {
+    // Directory doesn't exist, create it
+    if (error.code === "ENOENT") {
+      await fs.mkdir(targetDir, { recursive: true });
+    } else {
+      throw error;
+    }
+  }
 
   // Prepare choices for inquirer
   const featureChoices = Object.entries(featuresConfig).map(
@@ -185,18 +393,41 @@ async function scaffold() {
     },
   ]);
 
+  // If user wants to install dependencies, ask which installer to use
+  let installer = "npm";
+  if (answers.installDeps) {
+    const installerAnswer = await inquirer.prompt([
+      {
+        type: "list",
+        name: "installer",
+        message: "Which package manager would you like to use?",
+        choices: [
+          { name: "npm", value: "npm" },
+          { name: "yarn", value: "yarn" },
+          { name: "pnpm", value: "pnpm" },
+        ],
+        default: "npm",
+      },
+    ]);
+    installer = installerAnswer.installer;
+  }
+
   const selectedFeatures = answers.features;
 
   console.log(chalk.cyan("\n📦 Copying base template..."));
-  // Copy base template
-  await copyDirectory(BASE_TEMPLATE_DIR, targetDir, [
-    "node_modules",
-    "dist",
-    "build",
-  ]);
+  // Copy base template (no exclusions - copy everything)
+  await copyDirectory(BASE_TEMPLATE_DIR, targetDir, []);
 
-  // Collect all dependencies
+  // Process template variables (replace {{PROJECT_NAME}} with actual project name)
+  console.log(chalk.cyan("🔄 Processing template variables..."));
+  await processAllTemplateVariables(targetDir, {
+    PROJECT_NAME: projectName,
+  });
+
+  // Collect all dependencies and devDependencies
   const allDependencies = {};
+  const allDevDependencies = {};
+  const injectedMarkers = new Set(); // Track all markers that were injected
 
   // Process selected features
   if (selectedFeatures.length > 0) {
@@ -215,26 +446,42 @@ async function scaffold() {
       if (feature.dependencies) {
         Object.assign(allDependencies, feature.dependencies);
       }
+      if (feature.devDependencies) {
+        Object.assign(allDevDependencies, feature.devDependencies);
+      }
 
       // Apply code injections
       if (feature.injections && feature.injections.length > 0) {
         for (const injection of feature.injections) {
           const filePath = path.join(targetDir, injection.file);
-          await injectCode(filePath, injection.marker, injection.code);
+          const injected = await injectCode(
+            filePath,
+            injection.marker,
+            injection.code
+          );
+          if (injected) {
+            // Track the marker that was injected
+            injectedMarkers.add(injection.marker);
+          }
         }
       }
     }
   }
 
   // Merge dependencies into package.json
-  if (Object.keys(allDependencies).length > 0) {
+  if (
+    Object.keys(allDependencies).length > 0 ||
+    Object.keys(allDevDependencies).length > 0
+  ) {
     console.log(chalk.cyan("\n📝 Updating package.json with dependencies..."));
-    await mergePackageJson(targetDir, allDependencies);
+    await mergePackageJson(targetDir, allDependencies, allDevDependencies);
   }
 
-  // Clean up injection markers
-  console.log(chalk.cyan("\n🧹 Cleaning up markers..."));
-  await cleanupMarkers(targetDir);
+  // Clean up injection markers (excluding .env.example to preserve markers)
+  if (injectedMarkers.size > 0) {
+    console.log(chalk.cyan("\n🧹 Cleaning up injection markers..."));
+    await cleanupMarkers(targetDir, Array.from(injectedMarkers));
+  }
 
   // Summary
   console.log(chalk.green.bold("\n✅ Scaffolding complete!\n"));
@@ -251,38 +498,53 @@ async function scaffold() {
   console.log(chalk.blue.bold("\n📋 Next steps:\n"));
 
   if (answers.installDeps) {
-    console.log(chalk.white("Installing dependencies...\n"));
+    console.log(chalk.white(`Installing dependencies with ${installer}...\n`));
     const { spawn } = await import("child_process");
 
+    // Determine install command based on installer
+    const installCommand =
+      installer === "yarn" ? "yarn" : installer === "pnpm" ? "pnpm" : "npm";
+    const installArgs = installer === "yarn" ? [] : ["install"];
+
     return new Promise((resolve, reject) => {
-      const npm = spawn("npm", ["install"], {
+      const installProcess = spawn(installCommand, installArgs, {
         cwd: targetDir,
         stdio: "inherit",
         shell: true,
       });
 
-      npm.on("close", (code) => {
+      installProcess.on("close", (code) => {
         if (code !== 0) {
-          console.error(chalk.red("\n❌ Failed to install dependencies"));
-          reject(new Error("npm install failed"));
+          console.error(
+            chalk.red(`\n❌ Failed to install dependencies with ${installer}`)
+          );
+          reject(new Error(`${installer} install failed`));
         } else {
           console.log(
             chalk.green.bold("\n✅ Dependencies installed successfully!")
           );
-          printNextSteps();
+          printNextSteps(installer);
           resolve();
         }
       });
     });
   } else {
-    console.log(chalk.gray("  1. Install dependencies: npm install"));
+    console.log(
+      chalk.gray("  1. Install dependencies: npm install (or yarn/pnpm)")
+    );
     printNextSteps();
   }
 }
 
-function printNextSteps() {
+function printNextSteps(installer = "npm") {
   console.log(chalk.gray("  2. Configure environment variables in .env"));
-  console.log(chalk.gray("  3. Start development: npm run dev"));
+  const devCommand =
+    installer === "yarn"
+      ? "yarn dev"
+      : installer === "pnpm"
+      ? "pnpm dev"
+      : "npm run dev";
+  console.log(chalk.gray(`  3. Start development: ${devCommand}`));
   console.log(chalk.blue("\nHappy coding! 🎉\n"));
 }
 

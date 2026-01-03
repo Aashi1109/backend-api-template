@@ -1,7 +1,7 @@
-import config from "@/config";
+import { config } from "@/shared";
 import { Redis } from "@upstash/redis";
 
-import { REDIS_CONNECTION_NAMES } from "@/shared/constants";
+import { REDIS_CONNECTION_NAMES } from "@/shared";
 
 const redisConnections: Partial<Record<REDIS_CONNECTION_NAMES, Redis>> = {};
 
